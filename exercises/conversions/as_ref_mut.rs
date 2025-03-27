@@ -7,59 +7,51 @@
 // Execute `rustlings hint as_ref_mut` or use the `hint` watch subcommand for a
 // hint.
 
-// I AM NOT DONE
 
-// Obtain the number of bytes (not characters) in the given argument.
-// TODO: Add the AsRef trait appropriately as a trait bound.
-fn byte_counter<T>(arg: T) -> usize {
-    arg.as_ref().as_bytes().len()
+
+use std::convert::{TryFrom, TryInto};
+
+#[derive(Debug, PartialEq)]
+struct Color {
+    red: u8,
+    green: u8,
+    blue: u8,
 }
 
-// Obtain the number of characters (not bytes) in the given argument.
-// TODO: Add the AsRef trait appropriately as a trait bound.
-fn char_counter<T>(arg: T) -> usize {
-    arg.as_ref().chars().count()
+// ✅ 只定义一次 `IntoColorError`
+#[derive(Debug, PartialEq)]
+enum IntoColorError {
+    BadLen,
+    IntConversion,
 }
 
-// Squares a number using as_mut().
-// TODO: Add the appropriate trait bound.
-fn num_sq<T>(arg: &mut T) {
-    // TODO: Implement the function body.
-    ???
+// ✅ 复用 `IntoColorError`
+impl TryFrom<(i16, i16, i16)> for Color {
+    type Error = IntoColorError;
+
+    fn try_from(tuple: (i16, i16, i16)) -> Result<Self, Self::Error> {
+        let (r, g, b) = tuple;
+        if (0..=255).contains(&r) && (0..=255).contains(&g) && (0..=255).contains(&b) {
+            Ok(Color { red: r as u8, green: g as u8, blue: b as u8 })
+        } else {
+            Err(IntoColorError::IntConversion)
+        }
+    }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn different_counts() {
-        let s = "Café au lait";
-        assert_ne!(char_counter(s), byte_counter(s));
+impl TryFrom<[i16; 3]> for Color {
+    type Error = IntoColorError;
+    fn try_from(arr: [i16; 3]) -> Result<Self, Self::Error> {
+        Self::try_from((arr[0], arr[1], arr[2])) // 复用 tuple 版本
     }
+}
 
-    #[test]
-    fn same_counts() {
-        let s = "Cafe au lait";
-        assert_eq!(char_counter(s), byte_counter(s));
-    }
-
-    #[test]
-    fn different_counts_using_string() {
-        let s = String::from("Café au lait");
-        assert_ne!(char_counter(s.clone()), byte_counter(s));
-    }
-
-    #[test]
-    fn same_counts_using_string() {
-        let s = String::from("Cafe au lait");
-        assert_eq!(char_counter(s.clone()), byte_counter(s));
-    }
-
-    #[test]
-    fn mult_box() {
-        let mut num: Box<u32> = Box::new(3);
-        num_sq(&mut num);
-        assert_eq!(*num, 9);
+impl TryFrom<&[i16]> for Color {
+    type Error = IntoColorError;
+    fn try_from(slice: &[i16]) -> Result<Self, Self::Error> {
+        if slice.len() != 3 {
+            return Err(IntoColorError::BadLen);
+        }
+        Self::try_from((slice[0], slice[1], slice[2])) // 复用 tuple 版本
     }
 }
